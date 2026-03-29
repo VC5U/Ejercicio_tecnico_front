@@ -1,3 +1,4 @@
+// src/services/api.js
 const API_URL = "http://localhost:8080/api/conversaciones";
 
 export const chatService = {
@@ -6,18 +7,20 @@ export const chatService = {
     if (!res.ok) throw new Error("Error al obtener conversaciones");
     return res.json();
   },
-  createConversacion: async (titulo, usuarioId) => {
+
+  crearConversacion: async (usuarioId, titulo) => { 
     const res = await fetch(API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ titulo, usuarioId }) 
     });
+    if (!res.ok) throw new Error("Error al crear");
     return res.json();
   },
-  
 
   getMensajes: async (id) => {
     const res = await fetch(`${API_URL}/${id}/mensajes`);
+    if (!res.ok) return [];
     return res.json();
   },
 
@@ -29,7 +32,7 @@ export const chatService = {
     });
     return res.json();
   },
-    // En api.js o donde tengas chatService
+
   deleteConversacion: async (id) => {
     const res = await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
     return res.ok;
