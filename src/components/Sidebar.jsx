@@ -1,7 +1,17 @@
-import React, { useState } from 'react';
-import { Bot, Users, PlusCircle, MessageSquare, Edit2, Trash2, Search, Calendar } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { Bot, Users, PlusCircle, MessageSquare, Edit2, Trash2, Search, Calendar, LogOut } from 'lucide-react';
 
-const Sidebar = ({ view, setView, conversaciones, selectedId, setSelectedId, onNuevoChat, onBorrar, onEditar }) => {
+const Sidebar = ({ 
+  view, 
+  setView, 
+  conversaciones = [], // Default para evitar errores de .filter
+  selectedId, 
+  setSelectedId, 
+  onNuevoChat, 
+  onBorrar, 
+  onEditar,
+  onLogout 
+}) => {
   const [searchTerm, setSearchTerm] = useState("");
 
   const ETIQUETAS = {
@@ -10,13 +20,17 @@ const Sidebar = ({ view, setView, conversaciones, selectedId, setSelectedId, onN
     PENDIENTE: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/50'
   };
 
-  const filteredConvs = conversaciones.filter(c => 
-    c.titulo.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Memorizamos el filtrado para evitar cálculos innecesarios en cada render
+  const filteredConvs = useMemo(() => {
+    return conversaciones.filter(c => 
+      c.titulo?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [conversaciones, searchTerm]);
 
   return (
     <aside className="w-80 h-full bg-[#111827] flex flex-col border-r border-gray-800/50 transition-all duration-300">
-      {/* NAVEGACIÓN PRINCIPAL: 3 PESTAÑAS */}
+      
+      {/* NAVEGACIÓN PRINCIPAL */}
       <div className="p-4 pt-6">
         <div className="flex p-1 bg-gray-900/80 border border-gray-800 rounded-2xl shadow-inner gap-1">
           <button 
@@ -51,7 +65,6 @@ const Sidebar = ({ view, setView, conversaciones, selectedId, setSelectedId, onN
         </div>
       </div>
 
-      {/* CONTENIDO DINÁMICO SEGÚN LA VISTA */}
       <div className="flex-1 overflow-hidden flex flex-col">
         {view === 'ia' && (
           <>
@@ -70,7 +83,7 @@ const Sidebar = ({ view, setView, conversaciones, selectedId, setSelectedId, onN
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-gray-600" />
                 <input 
                   type="text" 
-                  placeholder="Buscar en la oficina..."
+                  placeholder="Buscar en tus casos..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full bg-gray-900/40 border border-gray-800/50 rounded-xl py-2 pl-9 pr-4 text-[11px] outline-none focus:border-blue-500/30 transition-all placeholder:text-gray-700 text-white"
@@ -86,13 +99,13 @@ const Sidebar = ({ view, setView, conversaciones, selectedId, setSelectedId, onN
                     onClick={() => setSelectedId(conv.id)}
                     className={`group relative p-3.5 rounded-2xl cursor-pointer border transition-all duration-200 ${
                       selectedId === conv.id 
-                        ? 'bg-blue-600/5 border-blue-500/30 shadow-sm' 
+                        ? 'bg-blue-600/10 border-blue-500/40 shadow-sm' 
                         : 'hover:bg-gray-800/40 border-transparent'
                     }`}
                   >
                     <div className="flex justify-between items-start mb-1">
-                      <div className="flex flex-col gap-1">
-                        <p className={`text-[12px] font-bold truncate max-w-[140px] ${
+                      <div className="flex flex-col gap-1 overflow-hidden">
+                        <p className={`text-[12px] font-bold truncate max-w-[150px] ${
                           selectedId === conv.id ? 'text-blue-400' : 'text-gray-300 group-hover:text-white'
                         }`}>
                           {conv.titulo}
@@ -103,34 +116,50 @@ const Sidebar = ({ view, setView, conversaciones, selectedId, setSelectedId, onN
                           </span>
                         )}
                       </div>
-                      <span className="text-[9px] text-gray-600 font-medium">{conv.hora || '12:50 PM'}</span>
+                      <span className="text-[9px] text-gray-600 font-medium shrink-0">
+                        {conv.fecha || 'Hoy'}
+                      </span>
                     </div>
+                    
                     <p className="text-[10px] text-gray-500 italic truncate pr-8 leading-tight">
-                      {conv.resumenIA || "Sin resumen disponible..."}
+                      {conv.resumenIA || "Sin actividad reciente..."}
                     </p>
-                    <div className="absolute right-3 bottom-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button onClick={(e) => { e.stopPropagation(); onEditar(conv); }} className="p-1 hover:text-blue-400 text-gray-600 transition-colors">
+                    
+                    {/* Botones de acción con stopPropagation para no seleccionar el chat al hacer click en ellos */}
+                    <div className="absolute right-3 bottom-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity bg-gray-900 p-1 rounded-lg">
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); onEditar(conv); }} 
+                        className="p-1 hover:text-blue-400 text-gray-600 transition-colors"
+                        title="Editar"
+                      >
                         <Edit2 size={12} />
                       </button>
-                      <button onClick={(e) => { e.stopPropagation(); onBorrar(conv.id); }} className="p-1 hover:text-red-400 text-gray-600 transition-colors">
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); onBorrar(conv.id); }} 
+                        className="p-1 hover:text-red-400 text-gray-600 transition-colors"
+                        title="Eliminar"
+                      >
                         <Trash2 size={12} />
                       </button>
                     </div>
                   </div>
                 ))
               ) : (
-                <div className="text-center py-10">
-                  <MessageSquare size={30} className="mx-auto text-gray-800 mb-2" />
-                  <p className="text-[10px] text-gray-600 font-bold uppercase tracking-widest">No hay registros</p>
+                <div className="text-center py-10 opacity-40">
+                  <MessageSquare size={30} className="mx-auto mb-2" />
+                  <p className="text-[10px] font-bold uppercase tracking-widest">
+                    {searchTerm ? "Sin resultados" : "Lista vacía"}
+                  </p>
                 </div>
               )}
             </div>
           </>
         )}
 
+        {/* VISTA GRUPAL */}
         {view === 'grupal' && (
           <div className="flex-1 px-4 space-y-2">
-            <h4 className="text-[10px] font-black text-purple-400 uppercase mb-4 tracking-widest px-1">Canales de Oficina</h4>
+            <h4 className="text-[10px] font-black text-purple-400 uppercase mb-4 tracking-widest px-1 mt-4">Canales de Oficina</h4>
             <div 
               onClick={() => setSelectedId('general')}
               className={`flex items-center gap-3 p-3 rounded-2xl cursor-pointer transition-all border ${
@@ -142,36 +171,45 @@ const Sidebar = ({ view, setView, conversaciones, selectedId, setSelectedId, onN
               <div className="size-9 rounded-xl bg-purple-600 flex items-center justify-center text-sm font-black text-white shadow-inner">#</div>
               <div className="flex flex-col">
                 <span className="text-xs font-bold text-gray-200">General_Oficina</span>
-                <span className="text-[9px] text-purple-400 font-medium uppercase tracking-tighter">Canal Principal</span>
+                <span className="text-[9px] text-purple-400 font-medium uppercase tracking-tighter">Chat Compartido</span>
               </div>
             </div>
           </div>
         )}
 
+        {/* VISTA CALENDARIO */}
         {view === 'calendario' && (
           <div className="flex-1 px-4 flex flex-col items-center justify-center text-center space-y-4">
             <div className="p-4 bg-emerald-500/10 rounded-full border border-emerald-500/20">
               <Calendar size={32} className="text-emerald-500" />
             </div>
             <div>
-              <h4 className="text-xs font-bold text-emerald-400 uppercase tracking-widest">Modo Agenda Activo</h4>
+              <h4 className="text-xs font-bold text-emerald-400 uppercase tracking-widest">Modo Agenda</h4>
               <p className="text-[10px] text-gray-500 mt-2 leading-relaxed">
-                Revisa y gestiona las tareas<br />programadas para la oficina.
+                Revisa las fechas<br />comprometidas en tus chats.
               </p>
             </div>
           </div>
         )}
       </div>
 
-      {/* FOOTER DEL SIDEBAR */}
-      <div className="p-4 border-t border-gray-800/50 bg-[#111827]/80">
-        <div className="flex items-center justify-between px-2">
+      {/* FOOTER */}
+      <div className="p-4 border-t border-gray-800/50 bg-[#0f172a]/40">
+        <div className="flex items-center justify-between mb-3 px-1">
           <div className="flex items-center gap-2">
             <div className="size-2 bg-green-500 rounded-full shadow-[0_0_8px_rgba(34,197,94,0.4)]" />
-            <span className="text-[9px] font-black text-gray-500 uppercase tracking-tighter">Servidor Activo</span>
+            <span className="text-[9px] font-black text-gray-500 uppercase tracking-tighter">Online</span>
           </div>
-          <span className="text-[9px] text-gray-600 font-bold tracking-tighter">v2.4.0-PRO</span>
+          <span className="text-[9px] text-gray-600 font-bold tracking-tighter">v2.4.0</span>
         </div>
+        
+        <button 
+          onClick={onLogout}
+          className="w-full flex items-center justify-center gap-2 py-2 rounded-xl bg-red-500/5 hover:bg-red-500/20 text-red-500/60 hover:text-red-500 border border-red-500/10 transition-all text-[10px] font-bold uppercase tracking-widest"
+        >
+          <LogOut size={14} />
+          Cerrar Sesión
+        </button>
       </div>
     </aside>
   );
